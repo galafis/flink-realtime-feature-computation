@@ -1,0 +1,53 @@
+# ─── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ─── Virtual Environments ─────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── IDE ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ─── Testing ──────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# ─── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Data / Runtime ──────────────────────────────────────────────
+data/
+*.jsonl
+checkpoints/
+savepoints/
+
+# ─── Secrets ──────────────────────────────────────────────────────
+.env
+.env.local
+*.pem
+*.key

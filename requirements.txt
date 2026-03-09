@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────────
+# Flink Real-Time Feature Computation Engine
+# Core dependencies (demo runs with just PyYAML)
+# ─────────────────────────────────────────────────────────────────
+
+# Configuration
+PyYAML>=6.0
+
+# Testing
+pytest>=7.0
+pytest-cov>=4.0
+pytest-timeout>=2.0
+
+# Optional: Kafka integration (not required for demo)
+# confluent-kafka>=2.3.0
+
+# Optional: Redis integration (not required for demo)
+# redis>=5.0
+
+# Optional: Cassandra integration (not required for demo)
+# cassandra-driver>=3.29
+
+# Optional: Monitoring & observability
+# prometheus-client>=0.17.0

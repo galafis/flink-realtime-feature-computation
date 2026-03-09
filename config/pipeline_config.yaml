@@ -1,0 +1,153 @@
+# ─────────────────────────────────────────────────────────────────
+# Flink Real-Time Feature Computation Engine - Pipeline Configuration
+# ─────────────────────────────────────────────────────────────────
+
+pipeline:
+  name: "ecommerce-feature-pipeline"
+  version: "1.0.0"
+  parallelism: 4
+  checkpoint_interval_ms: 60000
+
+stream_processing:
+  time_characteristic: "event_time"
+  max_out_of_orderness_seconds: 5.0
+  allowed_lateness_seconds: 30.0
+  watermark_interval_ms: 1000
+
+source:
+  type: "kafka"
+  topic: "ecommerce-events"
+  consumer_group: "feature-engine"
+  auto_offset_reset: "earliest"
+
+features:
+  - name: "page_view_count_5m"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "_count"
+    aggregation: "count"
+    window_type: "tumbling"
+    window_size_seconds: 300
+    allowed_lateness_seconds: 30
+    output_type: "float64"
+    description: "Page views per user in 5-minute tumbling windows"
+    tags: ["engagement", "real-time"]
+
+  - name: "total_spend_1h"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "total_amount"
+    aggregation: "sum"
+    window_type: "tumbling"
+    window_size_seconds: 3600
+    allowed_lateness_seconds: 60
+    output_type: "float64"
+    description: "Total spend per user in 1-hour tumbling windows"
+    tags: ["monetization", "real-time"]
+
+  - name: "avg_order_value_1h"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "total_amount"
+    aggregation: "avg"
+    window_type: "tumbling"
+    window_size_seconds: 3600
+    allowed_lateness_seconds: 60
+    output_type: "float64"
+    description: "Average order value in 1-hour windows"
+    tags: ["monetization", "real-time"]
+
+  - name: "cart_additions_15m"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "_count"
+    aggregation: "count"
+    window_type: "sliding"
+    window_size_seconds: 900
+    window_slide_seconds: 300
+    allowed_lateness_seconds: 30
+    output_type: "float64"
+    description: "Cart additions in 15-min sliding windows (5-min slide)"
+    tags: ["engagement", "real-time"]
+
+  - name: "distinct_products_viewed_session"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "product_id"
+    aggregation: "distinct_count"
+    window_type: "session"
+    window_size_seconds: 0
+    session_gap_seconds: 300
+    output_type: "float64"
+    description: "Distinct products viewed per session"
+    tags: ["engagement", "session"]
+
+  - name: "search_count_5m"
+    source_topic: "ecommerce-events"
+    key_field: "user_id"
+    value_field: "_count"
+    aggregation: "count"
+    window_type: "tumbling"
+    window_size_seconds: 300
+    allowed_lateness_seconds: 30
+    output_type: "float64"
+    description: "Search events in 5-minute windows"
+    tags: ["engagement", "real-time"]
+
+feature_groups:
+  engagement:
+    - "page_view_count_5m"
+    - "search_count_5m"
+    - "distinct_products_viewed_session"
+  monetization:
+    - "total_spend_1h"
+    - "avg_order_value_1h"
+    - "cart_additions_15m"
+
+quality:
+  max_null_ratio: 0.05
+  max_stale_seconds: 300
+  distribution_check_window: 1000
+  distribution_drift_threshold: 0.1
+
+materialization_interval_seconds: 60
+batch_write_size: 500
+
+cep_patterns:
+  - name: "cart_abandonment"
+    pattern_type: "absence"
+    event_types: ["add_to_cart", "purchase"]
+    time_window_seconds: 1800
+    description: "Cart added but no purchase within 30 min"
+
+  - name: "high_value_purchase"
+    pattern_type: "threshold"
+    event_types: ["purchase"]
+    time_window_seconds: 300
+    threshold_field: "total_amount"
+    threshold_value: 200.0
+    description: "Purchase exceeding $200"
+
+  - name: "rapid_searches"
+    pattern_type: "frequency"
+    event_types: ["search"]
+    time_window_seconds: 60
+    min_occurrences: 5
+    description: "5+ searches within 1 minute"
+
+sink:
+  type: "dual_store"
+  online:
+    type: "redis"
+    default_ttl_seconds: 3600
+  offline:
+    type: "cassandra"
+    default_ttl_seconds: 7776000  # 90 days
+
+monitoring:
+  metrics_interval_seconds: 10
+  enable_latency_histogram: true
+  enable_throughput_counter: true
+  alerting:
+    error_rate_threshold: 0.01
+    latency_p99_threshold_ms: 100.0
